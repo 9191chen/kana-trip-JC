@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>北陸冬旅 12/17–12/23</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❄️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{
+  --snow:#EEF2F4; --paper:#FFFFFF; --ink:#1E2A33; --sub:#6B7780; --line:#D5DDE2;
+  --ai:#27466B;      /* 藍 */
+  --enji:#A3263A;    /* 臙脂 */
+  --kusa:#4E7A3A;    /* 草 */
+  --gold:#C9A24A;    /* 金箔 */
+  --warn-bg:#FFF6E0; --warn:#8A5A00;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--snow);color:var(--ink);
+  font-family:"Noto Sans TC",-apple-system,"PingFang TC","Microsoft JhengHei",sans-serif;font-size:15px;line-height:1.6}
+a{color:var(--ai)}
+button{font:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--ai);outline-offset:2px}
+main{max-width:640px;margin:0 auto;padding:0 14px 96px}
+.serif{font-family:"Noto Serif TC","Songti TC",serif}
+
+/* 頂部金箔帶 */
+.hero{position:relative;margin:0 -14px;padding:22px 18px 18px;color:#fff;
+  background:var(--ai);overflow:hidden}
+.hero::after{content:"";position:absolute;inset:auto -10% -40% auto;width:70%;height:140%;
+  background:radial-gradient(circle at 30% 30%,#E8CF8A 0,#C9A24A 35%,transparent 70%);opacity:.35;transform:rotate(-12deg)}
+.hero h1{margin:0;font-family:"Noto Serif TC",serif;font-weight:900;font-size:28px;letter-spacing:.08em;position:relative;z-index:1}
+.hero::before{content:"";position:absolute;left:18px;right:18px;bottom:0;height:3px;background:linear-gradient(90deg,#9C7A2B,#E9D08C,#B8903A)}
+.hero p{margin:4px 0 0;font-size:13px;opacity:.85;position:relative;z-index:1}
+
+/* 底部分頁 */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:1000;background:var(--paper);
+  border-top:1px solid var(--line);display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs button{flex:1;border:0;background:none;padding:8px 2px 6px;font-size:11px;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:2px}
+nav.tabs button span{font-size:19px;line-height:1}
+nav.tabs button[aria-selected=true]{color:var(--enji);font-weight:700;box-shadow:inset 0 3px 0 var(--gold)}
+nav.tabs{border-top:2px solid var(--gold)}
+section.page{display:none}
+section.page.on{display:block}
+
+/* 日期選擇 */
+.days{display:flex;gap:8px;overflow-x:auto;padding:14px 0 10px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.days button{flex:0 0 auto;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:5px 12px;font-size:12px;line-height:1.35;color:var(--ink);text-align:center}
+.days button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--gold);box-shadow:inset 0 -3px 0 var(--gold)}
+
+.dayhead{display:flex;align-items:flex-end;gap:12px;margin:6px 0 10px}
+.dayhead .num{font-family:"Noto Serif TC",serif;font-weight:900;font-size:54px;line-height:.9;
+  background:linear-gradient(135deg,#9C7A2B,#E9D08C 45%,#B8903A 70%,#E4C77A);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dayhead h2{margin:0;font-size:18px;font-family:"Noto Serif TC",serif}
+.dayhead small{display:block;color:var(--sub);font-size:12px;font-family:"Noto Sans TC",sans-serif;font-weight:400}
+
+.map{height:210px;border-color:var(--gold)!important;border-radius:12px;border:1px solid var(--line);margin-bottom:6px;z-index:1}
+.mapnote{font-size:11px;color:var(--sub);margin:0 0 14px}
+.tiles-muted{filter:grayscale(1) brightness(1.08) contrast(.85);opacity:.75}
+.pin{background:var(--enji);color:#fff;border:2px solid #fff;border-radius:50%;width:24px;height:24px;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.35)}
+
+/* 時間軸 */
+.tl{list-style:none;margin:0;padding:0;position:relative}
+.tl::before{content:"";position:absolute;left:52px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl li{display:grid;grid-template-columns:44px 1fr;gap:0 18px;padding:9px 0;position:relative}
+.tl li::before{content:"";position:absolute;left:48px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--paper);border:2px solid var(--gold)}
+.tl li.move::before{background:var(--gold)}
+.tl .t{font-weight:700;font-variant-numeric:tabular-nums;font-size:14px;padding-top:2px}
+.tl .n{font-weight:500}
+.tl .n .idx{display:inline-block;min-width:18px;height:18px;border-radius:50%;background:var(--enji);color:#fff;font-size:11px;text-align:center;line-height:18px;margin-right:5px;vertical-align:1px}
+.meta{font-size:13px;color:var(--ink);margin-top:2px}
+.grey{color:var(--sub);font-size:12px}
+.acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.btn{border:1px solid var(--ai);color:var(--ai);background:var(--paper);border-radius:16px;padding:3px 11px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+.btn.solid{background:var(--ai);color:#fff}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:6px 9px;font-size:12px;margin-top:6px}
+.red{color:var(--enji);font-weight:700}
+.tt{display:none;margin-top:6px;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px}
+.tt.on{display:block}
+.tt table{border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums}
+.tt td{padding:3px 4px;border-bottom:1px dashed var(--line)}
+.tt tr.pick td{color:var(--enji);font-weight:700}
+.tt .cap{font-weight:700;margin-bottom:4px}
+
+/* 通用卡片 */
+h3.sec{font-family:"Noto Serif TC",serif;font-size:19px;margin:20px 0 10px;padding-left:10px;border-left:4px solid var(--gold)}
+.card{background:var(--paper);border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid var(--line)}
+.card h4{margin:0 0 4px;font-size:16px}
+.row{display:flex;justify-content:space-between;gap:10px}
+.flight .big{font-family:"Noto Serif TC",serif;font-size:24px;font-weight:900;font-variant-numeric:tabular-nums}
+.more{display:none;margin-top:8px;padding:8px 10px;background:var(--snow);border-radius:8px;font-size:13px}
+.more.on{display:block}
+.total{text-align:right;color:var(--sub);font-size:12px;margin:4px 2px 16px}
+
+/* 交通總覽 */
+.tday{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px}
+.tday{cursor:pointer;border-left:4px solid var(--gold)}
+.tday b{font-family:"Noto Serif TC",serif}
+.tday ul{margin:6px 0 0;padding-left:18px;font-size:13px}
+
+/* 子分頁 */
+.subtabs{display:flex;gap:6px;margin:14px 0 6px}
+.subtabs button{flex:1;border:1px solid var(--line);background:var(--paper);border-radius:8px;padding:7px 4px;font-size:13px}
+.subtabs button[aria-pressed=true]{background:var(--enji);color:#fff;border-color:var(--enji)}
+
+/* 清單 */
+.cat{margin:16px 0}
+.cat-h{display:flex;align-items:center;gap:6px;font-weight:700;font-size:17px;color:var(--ai);margin-bottom:6px}
+.cat-h::before{content:"";width:4px;height:17px;background:var(--gold);border-radius:2px}
+.cat-h .x{margin-left:auto}
+.item{display:flex;align-items:center;gap:10px;background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin-bottom:6px;transition:box-shadow .15s,background .15s;touch-action:pan-y}
+.box{flex:0 0 22px;height:22px;border-radius:5px;border:2px solid #7A858D;background:#fff;color:var(--ai);font-size:15px;font-weight:900;line-height:18px;text-align:center;padding:0}
+.item .txt{flex:1;color:#111}
+.item.done{background:#E9EDEF;box-shadow:inset 0 2px 5px rgba(0,0,0,.18)}
+.item.done .box{border-color:var(--gold)}
+.item.done .txt{color:#4A5358;text-decoration:line-through}
+.qty{display:flex;align-items:center;gap:3px;font-size:13px;color:var(--sub)}
+.qty input{width:40px;border:1px solid var(--line);border-radius:6px;padding:3px 4px;font:inherit;font-size:13px;text-align:center;background:#fff}
+.handle{border:0;background:none;color:#9AA4AB;font-size:16px;padding:0 2px;touch-action:none;cursor:grab}
+.item.drag{opacity:.85;box-shadow:0 6px 16px rgba(0,0,0,.2);border-color:var(--gold)}
+.x{border:0;background:none;color:var(--sub);font-size:16px;padding:0 4px}
+.add{display:flex;gap:6px;margin:4px 0 8px}
+.add input{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px 9px;font:inherit;font-size:14px;background:var(--paper)}
+.plus{border:0;background:var(--ai);color:#fff;border-radius:8px;width:36px;font-size:20px;line-height:1}
+.addcat input{border:2px solid var(--gold)}
+.addcat .plus{background:#fff;border:2px solid var(--gold);color:#D4A017;font-weight:900}
+
+/* 購物 */
+.svgwrap{overflow-x:auto}
+.food li{margin-bottom:8px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header class="hero">
+    <h1>北陸冬旅</h1>
+    <p>2026/12/17–12/23　金澤・加賀溫泉・高岡・富山</p>
+  </header>
+
+  <section class="page" id="p-day">
+    <div class="days" id="dayBtns"></div>
+    <div id="dayBody"></div>
+  </section>
+
+  <section class="page on" id="p-trans"><h3 class="sec">行程概覽</h3><div id="transBody"></div></section>
+
+  <section class="page" id="p-stay"><div id="stayBody"></div></section>
+
+  <section class="page" id="p-prep">
+    <div class="subtabs" id="prepTabs"></div>
+    <div id="prepBody"></div>
+  </section>
+
+  <section class="page" id="p-shop"><div id="shopBody"></div></section>
+</main>
+
+<nav class="tabs" role="tablist">
+  <button role="tab" aria-selected="true" data-p="p-trans"><span>🗺️</span>概覽</button>
+  <button role="tab" aria-selected="false" data-p="p-day"><span>🗓️</span>每日行程</button>
+  <button role="tab" aria-selected="false" data-p="p-stay"><span>🏨</span>住宿航班</button>
+  <button role="tab" aria-selected="false" data-p="p-prep"><span>🧳</span>行李</button>
+  <button role="tab" aria-selected="false" data-p="p-shop"><span>🛍️</span>購物美食</button>
+</nav>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+/* ---------- 地點 ---------- */
+const P={
+  kmq:{q:'小松空港',p:[36.3946,136.4070]},
+  komatsu:{q:'小松駅 石川県',p:[36.4035,136.4527]},
+  kagaon:{q:'加賀温泉駅',p:[36.3193,136.3495]},
+  yamashiro:{q:'山代温泉 古総湯',p:[36.2934,136.3620]},
+  kikunoyu:{q:'山中温泉 菊の湯',p:[36.2476,136.3761]},
+  tawaraya:{q:'白鷺湯たわらや',p:[36.2449,136.3778]},
+  yamanakaza:{q:'山中座',p:[36.2479,136.3757]},
+  ayatori:{q:'あやとりはし 山中温泉',p:[36.2455,136.3770]},
+  mugenan:{q:'無限庵 加賀市',p:[36.2428,136.3764]},
+  kz:{q:'金沢駅',p:[36.5781,136.6480]},
+  maimon:{q:'金沢まいもん寿司 金沢駅店',p:[36.5779,136.6483]},
+  rinto:{q:'中川政七商店 金沢百番街Rinto',p:[36.5784,136.6486]},
+  forus:{q:'金沢フォーラス',p:[36.5777,136.6500]},
+  montbell:{q:'モンベル 金沢店',p:[36.5740,136.6535]},
+  gogo:{q:'ゴーゴーカレー 金沢駅総本山',p:[36.5762,136.6503]},
+  mitsui:{q:'三井ガーデンホテル金沢',p:[36.5679,136.6547]},
+  takaoka:{q:'高岡駅',p:[36.7447,137.0245]},
+  amaharashiSt:{q:'雨晴駅',p:[36.8199,137.0505]},
+  amaharashi:{q:'雨晴海岸 義経岩',p:[36.8233,137.0548]},
+  michinoeki:{q:'道の駅雨晴',p:[36.8219,137.0538]},
+  nakagawa:{q:'越中中川駅',p:[36.7555,137.0185]},
+  artmuseum:{q:'高岡市美術館',p:[36.7523,137.0209]},
+  minpi:{q:'カフェ ミンピ 高岡'},
+  kojo:{q:'高岡古城公園',p:[36.7505,137.0190]},
+  daibutsu:{q:'高岡大仏',p:[36.7457,137.0205]},
+  toyama:{q:'富山駅',p:[36.7013,137.2133]},
+  shiroebi:{q:'白えび亭 富山駅',p:[36.7010,137.2128]},
+  kansui:{q:'スターバックス 富山環水公園店',p:[36.7098,137.2126]},
+  minn:{q:'Minn 金沢',p:[36.5686,136.6540]},
+  castle:{q:'金沢城公園',p:[36.5655,136.6585]},
+  kenrokuen:{q:'兼六園',p:[36.5622,136.6626]},
+  kazue:{q:'主計町茶屋街',p:[36.5712,136.6643]},
+  higashi:{q:'ひがし茶屋街',p:[36.5724,136.6668]},
+  jade:{q:'肉匠Jade金澤',p:[36.5770,136.6514]},
+  omicho:{q:'近江町市場',p:[36.5716,136.6565]},
+  taro:{q:'茶菓工房たろう 鬼川店',p:[36.5622,136.6496]},
+  nishi:{q:'にし茶屋街',p:[36.5543,136.6503]},
+  miyuki:{q:'おでん居酒屋 三幸 本店',p:[36.5588,136.6510]},
+  daiwa:{q:'大和 香林坊店',p:[36.5617,136.6527]},
+  cubby:{q:'CUBBYHOLE 金沢'},
+  morihachi:{q:'森八 本店 金沢',p:[36.5703,136.6608]},
+  kanbayashi:{q:'上林金沢茶舗 本店',p:[36.5712,136.6613]},
+  anto:{q:'金沢百番街 あんと',p:[36.5781,136.6478]},
+  kzwest:{q:'金沢駅西口',p:[36.5785,136.6458]}
+};
+
+/* ---------- 時刻表 ---------- */
+const TT={
+  kmqbus:{c:'北鐵加賀巴士 小松機場 → 小松站',r:[['10:05','10:20'],['10:35','10:47'],['11:00','11:12'],['11:20','11:35',1],['11:55','12:07']],n:'不能用 Suica 等交通 IC 卡，付現金或信用卡感應。沒趕上 11:20 的話，11:55 那班會錯過 12:03 的電車，需改搭新幹線或計程車才趕得上手ぶらでGO 13:00 截止。'},
+  irkaga:{c:'IR 石川鐵道 小松 → 加賀溫泉（平日）',r:[['10:03','10:16'],['11:03','11:16'],['12:03','12:16',1],['13:03','13:16']]},
+  kaga2yamashiro:{c:'北鐵巴士 加賀溫泉站 → 山代溫泉（平日）',r:[['11:35','11:48'],['12:30','12:43','可提早'],['12:50','13:03',1],['13:20','13:33'],['13:45','13:58']],n:'加賀溫泉站 ② 號乘車處。不能用交通 IC 卡，現金上車抽整理券，或信用卡感應。'},
+  yamashiro2yamanaka:{c:'北鐵巴士 山代溫泉 → 山中溫泉（平日）',r:[['13:03','13:21'],['13:33','13:51'],['13:58','14:19 菊の湯前',1],['15:08','15:28'],['16:08','16:27']]},
+  yamanaka2kaga:{c:'北鐵巴士 山中 → 加賀溫泉站（平日）',r:[['菊の湯前 11:38','12:16'],['菊の湯前 12:43','13:21',1],['巴士總站 12:00','12:33'],['巴士總站 13:10','13:41'],['巴士總站 13:30','14:01'],['巴士總站 14:00','14:33']]},
+  shinkaga:{c:'北陸新幹線 加賀溫泉 → 金澤（平日）',r:[['12:17','12:36'],['12:37','12:56'],['13:20','13:39'],['13:37','13:56',1],['14:20','14:39'],['14:27','14:46'],['14:50','15:09'],['15:20','15:39']]},
+  irtakaoka:{c:'IR 石川鐵道 金澤 → 高岡',r:[['07:16','07:57'],['08:01','08:40'],['08:50','09:29',1],['09:24','10:07'],['10:05','10:44']]},
+  himidown:{c:'JR 氷見線 高岡 → 雨晴',r:[['07:40','08:02'],['08:07','08:33'],['08:43','09:04'],['09:43','10:03',1],['11:16','11:36']],n:'觀光列車べるもんた只在週日行駛，未列入。'},
+  himiup:{c:'JR 氷見線 雨晴 → 越中中川',r:[['10:30','10:48'],['12:05','12:23',1],['12:55','13:12'],['14:32','14:50']]},
+  ainokaze:{c:'愛之風富山鐵道 高岡 → 富山',r:[['16:20','16:39'],['16:38','16:55',1],['16:52','17:11'],['17:23','17:41'],['17:41','17:58'],['18:07','18:26']]},
+  shintoyama:{c:'北陸新幹線 富山 → 金澤',r:[['20:25','約 20:48（つるぎ）']],n:'20:02 這班待確認。目前只確認 20 點時段有 20:25 的つるぎ，出發前一個月核對時補齊。'},
+  limo:{c:'機場巴士 金澤站西口 → 小松機場（2026 年 9 月版）',r:[['07:10','07:55'],['09:10','09:55',1],['09:20','10:05']],n:'時刻配合航班每月公布，12 月班次出發前一個月核對。'}
+};
+
+/* ---------- 行程 ---------- */
+/* m: transit / walking / driving；at: 地點 key */
+const DAYS=[
+ {d:'12/17',w:'四',title:'抵達．山代溫泉．山中溫泉',items:[
+  {t:'04:30',n:'桃園機場 T2 報到'},
+  {t:'06:35',n:'BR158 起飛',g:'2 小時 50 分'},
+  {t:'10:25',n:'抵達小松機場，入境領行李',at:'kmq',nomove:1},
+  {t:'11:20',n:'小松機場 → 小松站',at:'komatsu',m:'transit',tr:'北鐵加賀巴士 小松空港線',g:'15 分',c:'¥310',tt:'kmqbus'},
+  {t:'12:03',n:'小松站 → 加賀溫泉站',at:'kagaon',m:'transit',tr:'IR 石川鐵道',g:'13 分',c:'¥240',tt:'irkaga',w:'票價待確認'},
+  {t:'12:20',n:'加賀溫泉站：手ぶらでGO 寄行李',g:'¥900／件，13:00 截止'},
+  {t:'12:50',n:'加賀溫泉站 → 山代溫泉',at:'yamashiro',m:'transit',tr:'北鐵巴士 溫泉山中線',g:'13 分',c:'¥290',tt:'kaga2yamashiro',w:'寄行李很快的話，可改搭 12:30 那班，山代能多逛 20 分鐘。'},
+  {t:'13:03',n:'山代溫泉：古總湯、瑓永昌堂、Shimotune、丸福（純逛不泡）',g:'停留約 55 分'},
+  {t:'13:58',n:'山代溫泉 → 菊の湯前',at:'kikunoyu',m:'transit',tr:'同路線 栢野行',g:'21 分',c:'約 ¥300（估）',tt:'yamashiro2yamanaka'},
+  {t:'14:20',n:'湯氣街道散步'},
+  {t:'15:00',n:'入住 白鷺湯たわらや（行李已送達）',at:'tawaraya',m:'walking',tr:'步行'},
+  {t:'15:20',n:'山中座、菊の湯足湯、湯氣街道',at:'yamanakaza',m:'walking',tr:'步行',g:'日落 16:45'},
+  {t:'17:00',n:'回旅館泡湯',at:'tawaraya',m:'walking',tr:'步行'},
+  {t:'18:00',n:'旅館晚餐'}]},
+ {d:'12/18',w:'五',title:'鶴仙溪．無限庵．移動金澤',start:'tawaraya',items:[
+  {t:'08:00',n:'早餐'},{t:'08:45',n:'泡湯'},
+  {t:'10:30',n:'退房，行李寄放旅館櫃台'},
+  {t:'10:35',n:'鶴仙溪散步（あやとりはし → 溪谷步道）',at:'ayatori',m:'walking',tr:'步行'},
+  {t:'11:00',n:'無限庵（週二公休）',at:'mugenan',m:'walking',tr:'步行',g:'15 分',w:'開放時間待確認'},
+  {t:'12:15',n:'走回旅館取行李',at:'tawaraya',m:'walking',tr:'步行',g:'15 分'},
+  {t:'12:43',n:'菊の湯前 → 加賀溫泉站',at:'kagaon',m:'transit',tr:'北鐵巴士',g:'38 分',c:'¥470',tt:'yamanaka2kaga'},
+  {t:'13:37',n:'加賀溫泉 → 金澤',at:'kz',m:'transit',tr:'北陸新幹線 はくたか566號',g:'19 分',c:'約 ¥1,800',tt:'shinkaga',w:'票價待確認'},
+  {t:'13:56',n:'抵達金澤，行李寄車站置物櫃'},
+  {t:'14:30',n:'午餐 金沢まいもん寿司 金沢駅店',at:'maimon',m:'walking',tr:'百番街內'},
+  {t:'15:45',n:'金澤百番街 Rinto｜中川政七商店',at:'rinto',m:'walking',tr:'站內'},
+  {t:'16:30',n:'金澤 FORUS｜MUJI 5F、UNIQLO 4F（Loft 也在 5F）',at:'forus',m:'walking',tr:'東口步行',g:'1 分'},
+  {t:'17:45',n:'mont-bell 金澤店（本町 リファーレ 1F）',at:'montbell',m:'walking',tr:'步行',g:'7 分'},
+  {t:'18:45',n:'晚餐 Go Go Curry 金澤站總本山',at:'gogo',m:'walking',tr:'步行'},
+  {t:'19:45',n:'取行李，入住 三井花園飯店金澤',at:'mitsui',m:'driving',tr:'計程車',g:'5 分',c:'約 ¥900'}]},
+ {d:'12/19',w:'六',title:'雨晴．高岡．富山',start:'mitsui',items:[
+  {t:'08:10',n:'三井出發 → 金澤站，買便利商店食物',at:'kz',m:'driving',tr:'計程車',g:'5 分',c:'約 ¥900'},
+  {t:'08:50',n:'金澤 → 高岡',at:'takaoka',m:'transit',tr:'IR 石川鐵道 直通',g:'39 分',c:'¥1,320',tt:'irtakaoka'},
+  {t:'09:29',n:'抵達高岡站，轉氷見線'},
+  {t:'09:43',n:'高岡 → 雨晴',at:'amaharashiSt',m:'transit',tr:'JR 氷見線',g:'20 分',c:'¥240',tt:'himidown'},
+  {t:'10:03',n:'抵達雨晴站'},
+  {t:'10:10',n:'雨晴海岸：看海、吃便利商店早午餐',at:'amaharashi',m:'walking',tr:'步行',g:'8 分'},
+  {t:'11:00',n:'道の駅 雨晴：展望台、買東西',at:'michinoeki',m:'walking',tr:'步行'},
+  {t:'12:05',n:'雨晴 → 越中中川',at:'nakagawa',m:'transit',tr:'JR 氷見線',g:'18 分',c:'¥240',tt:'himiup'},
+  {t:'12:30',n:'藤子・F・不二雄故鄉藝廊（高岡市美術館 2F）',at:'artmuseum',m:'walking',tr:'步行',g:'4 分'},
+  {t:'13:30',n:'カフェ ミンピ（高岡文化廳 1F）',at:'minpi',m:'walking',tr:'步行',g:'3 分'},
+  {t:'14:35',n:'高岡古城公園（免費／24h）',at:'kojo',m:'walking',tr:'步行',g:'8 分'},
+  {t:'15:35',n:'高岡大佛（免費）',at:'daibutsu',m:'walking',tr:'步行',g:'12 分'},
+  {t:'16:10',n:'回到高岡站',at:'takaoka',m:'walking',tr:'步行',g:'10 分'},
+  {t:'16:38',n:'高岡 → 富山',at:'toyama',m:'transit',tr:'愛之風富山鐵道',g:'17 分',tt:'ainokaze',w:'票價待確認'},
+  {t:'17:05',n:'白蝦亭（JR 富山站 とやマルシェ內）',at:'shiroebi',m:'walking',tr:'站內'},
+  {t:'18:30',n:'環水公園 星巴克',at:'kansui',m:'walking',tr:'北口步行',g:'9 分'},
+  {t:'20:02',n:'富山 → 金澤',at:'kz',m:'transit',tr:'北陸新幹線',g:'約 23 分',c:'約 ¥3,000',tt:'shintoyama',w:'班次待確認（出發前一個月核對）'},
+  {t:'20:30',n:'金澤站 → 三井花園',at:'mitsui',m:'driving',tr:'計程車',g:'5 分',c:'約 ¥900'}]},
+ {d:'12/20',w:'日',title:'金澤．換宿',start:'mitsui',items:[
+  {t:'08:00',n:'早餐'},
+  {t:'09:00',n:'三井退房，行李走去 Minn 寄放',at:'minn',m:'walking',tr:'步行',g:'2 分（同一條街）'},
+  {t:'09:20',n:'金澤城公園（園區免費）',at:'castle',m:'walking',tr:'步行',g:'11 分'},
+  {t:'11:00',n:'兼六園（8:00–17:00／¥320）',at:'kenrokuen',m:'walking',tr:'步行',g:'5 分'},
+  {t:'13:40',n:'主計町茶屋街',at:'kazue',m:'walking',tr:'步行',g:'約 20 分（估）'},
+  {t:'14:30',n:'東茶屋街',at:'higashi',m:'walking',tr:'步行',g:'7 分'},
+  {t:'16:30',n:'入住 Minn 金澤',at:'minn',m:'walking',tr:'步行約 20 分（估）或計程車約 5 分'},
+  {t:'19:00',n:'晚餐 肉匠 Jade 金澤',at:'jade',m:'walking',tr:'步行約 15 分（估）或計程車約 5 分',g:'晚餐 17:00–22:00，金澤站東口步行 3 分'}]},
+ {d:'12/21',w:'一',title:'近江町．自炊．西茶屋街',start:'minn',items:[
+  {t:'08:30',n:'Minn 出發，繞路散步'},
+  {t:'08:50',n:'近江町市場：先走一圈看貨比價',at:'omicho',m:'walking',tr:'步行',g:'20 分，部分店家 8:30 開'},
+  {t:'09:15',n:'採買海鮮',g:'多數店家 9:00 開'},
+  {t:'11:30',n:'回 Minn',at:'minn',m:'walking',tr:'步行',g:'6 分'},
+  {t:'11:45',n:'公寓自炊午餐 🦀'},
+  {t:'13:30',n:'Minn → 茶菓工房たろう 鬼川店',at:'taro',m:'driving',tr:'計程車',g:'約 8 分',c:'約 ¥1,000（估）',w:'同品牌在金澤站あんと也有店（8:30–20:00），Day 6 會經過。'},
+  {t:'13:40',n:'茶菓工房たろう 鬼川店（8:45–17:30）買了就走'},
+  {t:'14:10',n:'西茶屋街',at:'nishi',m:'walking',tr:'步行',g:'17 分'},
+  {t:'15:45',n:'離開西茶屋街',g:'停留約 75 分'},
+  {t:'15:55',n:'三幸 本店 排隊（16:00 開門）',at:'miyuki',m:'walking',tr:'步行',g:'10 分',w:'只收現金；3 人以上可訂位。'},
+  {t:'16:00',n:'三幸本店 晚餐'},
+  {t:'17:40',n:'大和百貨 金澤香林坊店（買水果）',at:'daiwa',m:'walking',tr:'步行',g:'3 分'},
+  {t:'19:30',n:'回 Minn',at:'minn',m:'walking',tr:'步行約 12 分（估）或計程車 5 分'}]},
+ {d:'12/22',w:'二',title:'金澤慢遊．最後採買',start:'minn',items:[
+  {t:'07:40',n:'Minn 出發'},
+  {t:'08:00',n:'CUBBYHOLE 早餐（6:30–12:00／週四五公休）',at:'cubby',m:'walking',tr:'步行',g:'6 分'},
+  {t:'09:15',n:'森八 金澤本店（9:00 開）',at:'morihachi',m:'walking',tr:'步行',g:'17 分'},
+  {t:'10:30',n:'上林金澤茶舖 本店（9:30–17:30）',at:'kanbayashi',m:'walking',tr:'步行',g:'約 3 分（估）'},
+  {t:'11:40',n:'東茶屋街（補買金箔、和菓子）',at:'higashi',m:'walking',tr:'步行',g:'9 分'},
+  {t:'14:00',n:'金澤百番街 あんと 伴手禮街（8:30–20:00）',at:'anto',m:'driving',tr:'計程車',g:'約 10 分（估）'},
+  {t:'15:30',n:'金澤 FORUS｜MUJI 5F、UNIQLO 4F、Loft 5F',at:'forus',m:'walking',tr:'東口步行',g:'1 分'},
+  {t:'17:00',n:'金澤百番街 Rinto｜中川政七商店',at:'rinto',m:'walking',tr:'站內'},
+  {t:'19:00',n:'回 Minn 打包行李',at:'minn',m:'driving',tr:'計程車',g:'5 分'}]},
+ {d:'12/23',w:'三',title:'返台',start:'minn',items:[
+  {t:'07:00',n:'起床'},{t:'08:00',n:'早餐（前晚超商買好）'},
+  {t:'08:30',n:'退房',red:'Minn 退房期限 10:00'},
+  {t:'08:50',n:'金澤站西口巴士總站',at:'kzwest',m:'driving',tr:'計程車',g:'5 分',c:'約 ¥1,000'},
+  {t:'09:10',n:'機場巴士 → 小松機場',at:'kmq',m:'transit',tr:'北陸鐵道 機場巴士',g:'45 分',c:'¥1,400',tt:'limo',w:'備案班次 09:20 → 10:05'},
+  {t:'09:55',n:'小松機場：Check-in、託運、退稅'},
+  {t:'11:45',n:'BR157 起飛',g:'3 小時 50 分'},
+  {t:'14:35',n:'抵達桃園'}]}
+];
+
+/* ---------- 工具 ---------- */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const gq=q=>'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
+const gdir=(o,d,m)=>'https://www.google.com/maps/dir/?api=1'+(o?'&origin='+encodeURIComponent(o):'')+'&destination='+encodeURIComponent(d)+'&travelmode='+(m||'transit');
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+/* ---------- 分頁切換 ---------- */
+document.querySelectorAll('nav.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('section.page').forEach(s=>s.classList.toggle('on',s.id===b.dataset.p));
+  window.scrollTo(0,0);
+  if(b.dataset.p==='p-day')setTimeout(()=>renderDay(cur),30);
+});
+
+/* ---------- 每日行程 ---------- */
+let map=null,cur=store.get('day',0);
+function ttHTML(k){const t=TT[k];if(!t)return'';
+  return `<div class="cap">${esc(t.c)}</div><table>${t.r.map(r=>`<tr class="${r[2]===1?'pick':''}"><td>${esc(r[0])} 發</td><td>${esc(r[1])} 到</td><td class="grey">${r[2]===1?'本行程':r[2]?esc(r[2]):''}</td></tr>`).join('')}</table>${t.n?`<div class="grey" style="margin-top:6px">${esc(t.n)}</div>`:''}`}
+function renderDay(i){
+  cur=i;store.set('day',i);
+  document.querySelectorAll('#dayBtns button').forEach((b,j)=>b.setAttribute('aria-pressed',j===i));
+  const D=DAYS[i];let prev=D.start?P[D.start].q:null,pts=[],html='';
+  D.items.forEach((it,k)=>{
+    const pl=it.at?P[it.at]:null;let idx='';
+    if(pl&&pl.p){const last=pts[pts.length-1];if(!last||last.key!==it.at){pts.push({key:it.at,p:pl.p,n:it.n});}idx=`<span class="idx">${pts.length}</span>`}
+    const nav=pl&&!it.nomove?`<a class="btn solid" target="_blank" rel="noopener" href="${gdir(prev,pl.q,it.m)}">🧭 導航</a>`:'';
+    const pin='';
+    const tt=it.tt?`<button class="btn" data-tt="d${i}i${k}">🕒 時刻表</button>`:'';
+    const meta=(it.tr||it.g||it.c)?`<div class="meta">${it.tr?esc(it.tr):''}${it.g?` <span class="grey">${esc(it.g)}</span>`:''}${it.c?` <span class="grey">${esc(it.c)}</span>`:''}</div>`:'';
+    html+=`<li class="${it.m?'move':''}"><div class="t">${it.t}</div><div><div class="n">${idx}${esc(it.n)}</div>${meta}${it.red?`<div class="red" style="font-size:13px">⚠️ ${esc(it.red)}</div>`:''}${(nav||pin||tt)?`<div class="acts">${nav}${pin}${tt}</div>`:''}${it.tt?`<div class="tt" id="d${i}i${k}">${ttHTML(it.tt)}</div>`:''}${it.w?`<div class="warn">⚠️ ${esc(it.w)}</div>`:''}</div></li>`;
+    if(pl)prev=pl.q;
+  });
+  $('#dayBody').innerHTML=`<div class="dayhead"><div class="num">${i+1}</div><h2>${esc(D.title)}</h2></div>
+  <div class="map" id="map"></div><ol class="tl">${html}</ol>`;
+  document.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.tt).classList.toggle('on'));
+  drawMap(pts);
+}
+function drawMap(pts){
+  if(map){map.remove();map=null}
+  if(typeof L==='undefined'||!pts.length){$('#map').style.display='none';return}
+  map=L.map('map',{scrollWheelZoom:false,attributionControl:true});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',className:'tiles-muted'}).addTo(map);
+  const ll=pts.map(x=>x.p);
+  L.polyline(ll,{color:'#A3263A',weight:3,dashArray:'6 6',opacity:.8}).addTo(map);
+  pts.forEach((x,j)=>L.marker(x.p,{icon:L.divIcon({className:'',html:`<div class="pin">${j+1}</div>`,iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map).bindPopup(esc(x.n)));
+  map.fitBounds(L.latLngBounds(ll),{padding:[14,14],maxZoom:17});
+}
+$('#dayBtns').innerHTML=DAYS.map((D,i)=>`<button aria-pressed="false">D${i+1}<br>${D.d} ${D.w}</button>`).join('');
+document.querySelectorAll('#dayBtns button').forEach((b,i)=>b.onclick=()=>renderDay(i));
+renderDay(cur<DAYS.length?cur:0);
+
+/* ---------- 交通總覽 ---------- */
+const BRIEF=['桃園 → 小松 → 加賀溫泉 → 山代 → 山中溫泉','山中溫泉 → 加賀溫泉 → 金澤站 → 三井花園','金澤 → 高岡 → 雨晴 → 高岡 → 富山 → 金澤','金澤市區：金澤城、兼六園、茶屋街，換宿 Minn','近江町 → 長町 → 西茶屋街 → 片町、香林坊','尾張町 → 東茶屋街 → 金澤站','金澤站西口 → 小松機場 → 桃園'];
+$('#transBody').innerHTML=DAYS.map((D,i)=>`<div class="tday" data-go="${i}" role="button" tabindex="0"><b>Day ${i+1}　${D.d}（${D.w}）</b><div>${BRIEF[i]}</div><ul>${D.items.filter(x=>x.m&&x.m!=='walking').map(x=>`<li>${x.t}　${esc(x.n)}　${esc(x.tr||'')} <span class="grey">${esc(x.g||'')} ${esc(x.c||'')}</span></li>`).join('')||'<li class="grey">以步行為主</li>'}</ul></div>`).join('');
+
+document.querySelectorAll('[data-go]').forEach(c=>c.onclick=()=>{renderDay(+c.dataset.go);document.querySelector('nav.tabs button[data-p="p-day"]').click()});
+/* ---------- 住宿航班 ---------- */
+const HOTELS=[
+ {n:'白鷺湯たわらや',d:'12/17–12/18（1 晚）',a:'石川県加賀市山中温泉東町2丁目へ1番地',ci:'15:00',co:'11:00',more:'房型【溪流眺望】純和風客室（和室 12.5 疊）、1 間<br>方案：主餐和牛牛排或喉黑魚二選一'},
+ {n:'三井花園飯店 金澤',d:'12/18–12/20（2 晚）',a:'石川県金沢市上堤町1-22',q:'三井ガーデンホテル金沢',ci:'15:00',co:'11:00',more:'房型 Superior King／禁菸，共 2 間'},
+ {n:'Minn 金澤',d:'12/20–12/23（3 晚）',a:'石川県金沢市上堤町2-28',q:'Minn 金沢',ci:'15:00',co:'10:00',coRed:1,more:'4 位大人<br>房型 Deluxe Apartment（兩房、65㎡、附廚房）'}
+];
+$('#stayBody').innerHTML=`<h3 class="sec">機票　長榮航空</h3>
+<div class="card flight"><div class="grey">去程　12/17（四）　BR158</div><div class="row"><div><div class="big">06:35</div>桃園 TPE<div class="grey">台灣時間 UTC+8</div></div><div style="align-self:center" class="grey">2 小時 50 分</div><div style="text-align:right"><div class="big">10:25</div>小松 KMQ<div class="grey">日本時間 UTC+9</div></div></div></div>
+<div class="card flight"><div class="grey">回程　12/23（三）　BR157</div><div class="row"><div><div class="big">11:45</div>小松 KMQ<div class="grey">日本時間 UTC+9</div></div><div style="align-self:center" class="grey">3 小時 50 分</div><div style="text-align:right"><div class="big">14:35</div>桃園 TPE<div class="grey">台灣時間 UTC+8</div></div></div>
+<button class="btn" data-more="fl" style="margin-top:8px">航班資訊</button><div class="more" id="fl">長榮航空 EVA Air<br>去程 BR158　12/17 06:35 → 10:25<br>回程 BR157　12/23 11:45 → 14:35</div></div>
+<h3 class="sec">飯店</h3>
+${HOTELS.map((h,i)=>`<div class="card"><h4>${h.n}</h4><div class="grey">${h.d}</div><div style="margin-top:6px">📍 <a target="_blank" rel="noopener" href="${gq(h.q||h.a)}">${h.a}</a></div><div>入住 ${h.ci}／${h.coRed?`<span class="red">⚠️ 退房 ${h.co}（比其他兩間早 1 小時）</span>`:`退房 ${h.co}`}</div><button class="btn" data-more="h${i}" style="margin-top:8px">訂房確認資訊</button><div class="more" id="h${i}">${h.more}</div></div>`).join('')}
+<div class="total">每人住宿＋機票　約 NT$33,400</div>`;
+document.querySelectorAll('[data-more]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.more).classList.toggle('on'));
+
+/* ---------- 行前準備＋行李 ---------- */
+const DEF={
+ prep:[['證件與票券',['護照（效期 6 個月以上）','Visit Japan Web 填寫完成','信用卡']],['付款',['日圓現金（三幸只收現金）','可感應付款的信用卡（巴士用）']],['網路',['日本網卡或 eSIM']],['待預約',['三幸本店（3 人以上可訂位）','肉匠 Jade 金澤']],['出發前一個月核對',['所有時刻表','機場巴士 12 月班次','Day 3 富山 → 金澤新幹線']]],
+ carry:[['3C 產品',['手機','充電線','行動電源（只能隨身）','耳機','攝影器材']],['個人用品',['護照','錢包','常備藥','面紙','護唇膏']],['衣物',['薄外套（機上保暖）','口罩']]],
+ check:[['3C 產品',['充電器','轉接頭（日本插頭同台灣，可不帶）']],['個人用品',['盥洗用品','保養品','個人藥品','折疊傘','購物袋']],['衣物',['保暖外套','發熱衣','毛帽手套','防水好走的鞋','冰爪','換洗衣物','睡衣']]]
+};
+const LIST_NAMES={prep:'行前準備',carry:'隨身行李',check:'託運行李'};
+let lists=store.get('lists',null);
+if(!lists){lists={};for(const k in DEF)lists[k]=DEF[k].map(([c,it])=>({c,items:it.map(t=>({t,d:false}))}))}
+let sub=store.get('sub','prep');
+const save=()=>store.set('lists',lists);
+$('#prepTabs').innerHTML=Object.keys(LIST_NAMES).map(k=>`<button data-k="${k}">${LIST_NAMES[k]}</button>`).join('');
+document.querySelectorAll('#prepTabs button').forEach(b=>b.onclick=()=>{sub=b.dataset.k;store.set('sub',sub);renderList()});
+function renderList(){
+  document.querySelectorAll('#prepTabs button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.k===sub));
+  const L2=lists[sub],hasQ=sub!=='prep';
+  $('#prepBody').innerHTML=L2.map((c,ci)=>`<div class="cat"><div class="cat-h">${esc(c.c)}<button class="x" data-dc="${ci}" aria-label="刪除分類">✕</button></div>
+  <div class="items" data-cat="${ci}">${c.items.map((it,ii)=>`<div class="item ${it.d?'done':''}" data-ii="${ii}"><button class="handle" aria-label="拖曳排序">⋮⋮</button><button class="box" data-t="${ci}-${ii}" aria-label="${it.d?'取消勾選':'勾選'}">${it.d?'✓':''}</button><span class="txt">${esc(it.t)}</span>${hasQ?`<label class="qty">x<input inputmode="numeric" data-q="${ci}-${ii}" value="${esc(it.q||'')}" aria-label="數量">個</label>`:''}<button class="x" data-di="${ci}-${ii}" aria-label="刪除">✕</button></div>`).join('')}</div>
+  <div class="add"><input placeholder="新增項目" data-in="${ci}"><button class="plus" data-ai="${ci}" aria-label="新增項目">＋</button></div></div>`).join('')+
+  `<div class="add addcat" style="margin-top:18px"><input placeholder="新增分類" id="newCat"><button class="plus" id="addCat" aria-label="新增分類">＋</button></div>`;
+  document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const[a,z]=b.dataset.t.split('-');const it=L2[a].items[z];it.d=!it.d;save();renderList()});
+  document.querySelectorAll('[data-q]').forEach(i=>i.oninput=()=>{const[a,z]=i.dataset.q.split('-');L2[a].items[z].q=i.value;save()});
+  document.querySelectorAll('[data-di]').forEach(b=>b.onclick=()=>{const[a,z]=b.dataset.di.split('-');L2[a].items.splice(z,1);save();renderList()});
+  document.querySelectorAll('[data-dc]').forEach(b=>b.onclick=()=>{if(confirm('刪除「'+L2[b.dataset.dc].c+'」整個分類？')){L2.splice(b.dataset.dc,1);save();renderList()}});
+  const addItem=ci=>{const inp=document.querySelector(`[data-in="${ci}"]`);const v=inp.value.trim();if(!v)return;L2[ci].items.push({t:v,d:false,q:''});save();renderList()};
+  document.querySelectorAll('[data-ai]').forEach(b=>b.onclick=()=>addItem(b.dataset.ai));
+  document.querySelectorAll('[data-in]').forEach(i=>i.onkeydown=e=>{if(e.key==='Enter')addItem(i.dataset.in)});
+  const addCat=()=>{const v=$('#newCat').value.trim();if(!v)return;L2.push({c:v,items:[]});save();renderList()};
+  $('#addCat').onclick=addCat;$('#newCat').onkeydown=e=>{if(e.key==='Enter')addCat()};
+  /* 拖曳排序（同分類內） */
+  document.querySelectorAll('.handle').forEach(hd=>hd.onpointerdown=ev=>{
+    ev.preventDefault();const row=hd.closest('.item'),box=row.parentElement;row.classList.add('drag');hd.setPointerCapture(ev.pointerId);
+    const move=e=>{const sibs=[...box.children].filter(x=>x!==row);let placed=false;
+      for(const s of sibs){const r=s.getBoundingClientRect();if(e.clientY<r.top+r.height/2){box.insertBefore(row,s);placed=true;break}}
+      if(!placed)box.appendChild(row)};
+    const up=()=>{hd.removeEventListener('pointermove',move);row.classList.remove('drag');
+      const ci=box.dataset.cat,old=L2[ci].items;L2[ci].items=[...box.children].map(x=>old[x.dataset.ii]);save();renderList()};
+    hd.addEventListener('pointermove',move);hd.addEventListener('pointerup',up,{once:true});hd.addEventListener('pointercancel',up,{once:true});
+  });
+}
+renderList();
+
+/* ---------- 購物＋美食 ---------- */
+$('#shopBody').innerHTML=`<h3 class="sec">購物：金澤站周邊</h3>
+<div class="card"><p class="grey" style="margin:0 0 8px">四家店都在車站東口一帶，步行 1–3 分鐘內。</p>
+<div class="svgwrap"><svg viewBox="0 0 340 250" width="100%" role="img" aria-label="金澤站與 FORUS 相對位置簡圖" style="max-width:420px;display:block;margin:auto">
+ <rect x="10" y="20" width="150" height="190" rx="10" fill="#E3EAF0" stroke="#27466B"/>
+ <text x="85" y="42" text-anchor="middle" font-size="14" font-weight="700" fill="#27466B">JR 金澤站</text>
+ <rect x="24" y="60" width="122" height="54" rx="6" fill="#fff" stroke="#A3263A"/>
+ <text x="85" y="82" text-anchor="middle" font-size="12" fill="#1E2A33">百番街 Rinto</text>
+ <text x="85" y="101" text-anchor="middle" font-size="12" font-weight="700" fill="#A3263A">中川政七商店</text>
+ <rect x="24" y="126" width="122" height="36" rx="6" fill="#fff" stroke="#6B7780"/>
+ <text x="85" y="149" text-anchor="middle" font-size="12" fill="#1E2A33">百番街 あんと</text>
+ <text x="85" y="196" text-anchor="middle" font-size="11" fill="#6B7780">西口（機場巴士）↓</text>
+ <rect x="160" y="96" width="22" height="30" fill="#C9A24A"/>
+ <text x="171" y="146" text-anchor="middle" font-size="10" fill="#8A6A1E">東口</text>
+ <text x="171" y="158" text-anchor="middle" font-size="10" fill="#8A6A1E">鼓門</text>
+ <line x1="182" y1="111" x2="212" y2="111" stroke="#1E2A33" stroke-dasharray="4 3"/>
+ <text x="197" y="104" text-anchor="middle" font-size="9" fill="#6B7780">1 分</text>
+ <rect x="212" y="40" width="118" height="150" rx="8" fill="#fff" stroke="#27466B"/>
+ <text x="271" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#27466B">金澤 FORUS</text>
+ <line x1="222" y1="74" x2="320" y2="74" stroke="#D5DDE2"/>
+ <text x="226" y="96" font-size="12" fill="#1E2A33">5F</text><text x="250" y="96" font-size="12" font-weight="700" fill="#A3263A">MUJI・Loft</text>
+ <line x1="222" y1="108" x2="320" y2="108" stroke="#D5DDE2"/>
+ <text x="226" y="130" font-size="12" fill="#1E2A33">4F</text><text x="250" y="130" font-size="12" font-weight="700" fill="#A3263A">UNIQLO</text>
+ <line x1="222" y1="142" x2="320" y2="142" stroke="#D5DDE2"/>
+ <text x="271" y="170" text-anchor="middle" font-size="11" fill="#6B7780">10:00–20:00</text>
+</svg></div>
+<ul style="font-size:14px;padding-left:18px;margin:10px 0 0">
+ <li>中川政七商店：金澤百番街 Rinto（站內）　<a target="_blank" rel="noopener" href="${gq(P.rinto.q)}">地圖</a></li>
+ <li>UNIQLO：金澤 FORUS 4F　<a target="_blank" rel="noopener" href="${gq('金沢フォーラス')}">地圖</a></li>
+ <li>MUJI：金澤 FORUS 5F</li>
+ <li>Loft：金澤 FORUS 5F（10:00–21:00）</li>
+</ul><p class="grey" style="margin:6px 0 0">簡圖為相對位置示意，非實際比例。</p></div>
+<h3 class="sec">美食</h3>
+<div class="card"><ul class="food" style="padding-left:18px;margin:0">
+ <li><b>金沢まいもん寿司 金沢駅店</b>　Day 2 午餐</li>
+ <li><b>Go Go Curry 金澤站總本山</b>　Day 2 晚餐</li>
+ <li><b>カフェ ミンピ</b>　Day 3　<span class="grey">高岡文化廳 1F</span></li>
+ <li><b>白蝦亭</b>　Day 3 晚餐</li>
+ <li><b>肉匠 Jade 金澤</b>　Day 4 晚餐　<span class="grey">17:00–22:00，建議預約</span></li>
+ <li><b>三幸 本店</b>　Day 5 晚餐　<span class="grey">16:00 開門，只收現金，3 人以上可訂位</span></li>
+ <li><b>茶菓工房たろう 鬼川店</b>　Day 5　<span class="grey">8:45–17:30，</span><span class="red">あんと也有分店</span></li>
+ <li><b>CUBBYHOLE</b>　Day 6 早餐　<span class="grey">6:30–12:00，週四五公休</span></li>
+ <li><b>森八 本店／上林金澤茶舖 本店</b>　Day 6</li>
+</ul></div>`;
+</script>
+</body>
+</html>
