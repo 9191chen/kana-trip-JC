@@ -49,7 +49,7 @@ section.page{display:none}
 section.page.on{display:block}
 
 /* 日期選擇 */
-.days{display:flex;gap:8px;overflow-x:auto;padding:14px 0 10px;scrollbar-width:none}
+.days{display:flex;gap:8px;overflow-x:auto;padding:10px;margin:14px 0 10px;scrollbar-width:none;border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:16px;background:rgba(255,255,255,.5)}
 .days::-webkit-scrollbar{display:none}
 .days button{flex:0 0 auto;border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:5px 12px;font-size:12px;line-height:1.35;color:var(--ink);text-align:center}
 .days button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--gold);box-shadow:inset 0 -3px 0 var(--gold)}
@@ -67,12 +67,15 @@ section.page.on{display:block}
   display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;box-shadow:0 1px 3px rgba(0,0,0,.35)}
 
 /* 時間軸 */
-.tl{list-style:none;margin:0;padding:0;position:relative}
-.tl::before{content:"";position:absolute;left:52px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.tl{list-style:none;margin:0;padding:10px 12px;position:relative;border:1px solid var(--line);border-left:5px solid var(--gold);border-radius:16px;background:rgba(255,255,255,.5)}
+.tl::before{content:"";position:absolute;left:64px;top:20px;bottom:20px;width:2px;background:var(--line)}
 .tl li{display:grid;grid-template-columns:44px 1fr;gap:0 18px;padding:9px 0;position:relative}
 .tl li::before{content:"";position:absolute;left:48px;top:16px;width:10px;height:10px;border-radius:50%;background:var(--paper);border:2px solid var(--gold)}
 .tl li.move::before{background:var(--gold)}
-.tl .t{font-weight:700;font-variant-numeric:tabular-nums;font-size:14px;padding-top:2px}
+.tl li{padding:5px 0}
+.tl li::before{top:19px!important}
+.tl li>div:nth-child(2){background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:8px 11px}
+.tl .t{padding-top:8px!important;font-weight:700;font-variant-numeric:tabular-nums;font-size:14px;padding-top:2px}
 .tl .n{font-weight:500}
 .tl .n .idx{display:inline-block;min-width:18px;height:18px;border-radius:50%;background:var(--enji);color:#fff;font-size:11px;text-align:center;line-height:18px;margin-right:5px;vertical-align:1px}
 .meta{font-size:13px;color:var(--ink);margin-top:2px}
