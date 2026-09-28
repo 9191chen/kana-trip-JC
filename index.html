@@ -7,7 +7,6 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❄️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
 :root{
   --snow:#EEF2F4; --paper:#FFFFFF; --ink:#1E2A33; --sub:#6B7780; --line:#D5DDE2;
@@ -171,7 +170,6 @@ h3.sec{font-family:"Noto Serif TC",serif;font-size:19px;margin:20px 0 10px;paddi
   <button role="tab" aria-selected="false" data-p="p-shop"><span>🛍️</span>購物美食</button>
 </nav>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script>
 /* ---------- 地點 ---------- */
 const P={
@@ -357,7 +355,7 @@ function renderDay(i){
   const D=DAYS[i];let prev=D.start?P[D.start].q:null,pts=[],html='';
   D.items.forEach((it,k)=>{
     const pl=it.at?P[it.at]:null;let idx='';
-    if(pl&&pl.p){const last=pts[pts.length-1];if(!last||last.key!==it.at){pts.push({key:it.at,p:pl.p,n:it.n});}idx=`<span class="idx">${pts.length}</span>`}
+    
     const nav=pl&&!it.nomove?`<a class="btn solid" target="_blank" rel="noopener" href="${gdir(prev,pl.q,it.m)}">🧭 導航</a>`:'';
     const pin='';
     const tt=it.tt?`<button class="btn" data-tt="d${i}i${k}">🕒 時刻表</button>`:'';
@@ -365,20 +363,8 @@ function renderDay(i){
     html+=`<li class="${it.m?'move':''}"><div class="t">${it.t}</div><div><div class="n">${idx}${esc(it.n)}</div>${meta}${it.red?`<div class="red" style="font-size:13px">⚠️ ${esc(it.red)}</div>`:''}${(nav||pin||tt)?`<div class="acts">${nav}${pin}${tt}</div>`:''}${it.tt?`<div class="tt" id="d${i}i${k}">${ttHTML(it.tt)}</div>`:''}${it.w?`<div class="warn">⚠️ ${esc(it.w)}</div>`:''}</div></li>`;
     if(pl)prev=pl.q;
   });
-  $('#dayBody').innerHTML=`<div class="dayhead"><div class="num">${i+1}</div><h2>${esc(D.title)}</h2></div>
-  <div class="map" id="map"></div><ol class="tl">${html}</ol>`;
+  $('#dayBody').innerHTML=`<div class="dayhead"><div class="num">${i+1}</div><h2>${esc(D.title)}</h2></div><ol class="tl" style="margin-top:14px">${html}</ol>`;
   document.querySelectorAll('[data-tt]').forEach(b=>b.onclick=()=>document.getElementById(b.dataset.tt).classList.toggle('on'));
-  drawMap(pts);
-}
-function drawMap(pts){
-  if(map){map.remove();map=null}
-  if(typeof L==='undefined'||!pts.length){$('#map').style.display='none';return}
-  map=L.map('map',{scrollWheelZoom:false,attributionControl:true});
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',className:'tiles-muted'}).addTo(map);
-  const ll=pts.map(x=>x.p);
-  L.polyline(ll,{color:'#A3263A',weight:3,dashArray:'6 6',opacity:.8}).addTo(map);
-  pts.forEach((x,j)=>L.marker(x.p,{icon:L.divIcon({className:'',html:`<div class="pin">${j+1}</div>`,iconSize:[24,24],iconAnchor:[12,12]})}).addTo(map).bindPopup(esc(x.n)));
-  map.fitBounds(L.latLngBounds(ll),{padding:[14,14],maxZoom:17});
 }
 $('#dayBtns').innerHTML=DAYS.map((D,i)=>`<button aria-pressed="false">D${i+1}<br>${D.d} ${D.w}</button>`).join('');
 document.querySelectorAll('#dayBtns button').forEach((b,i)=>b.onclick=()=>renderDay(i));
